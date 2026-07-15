@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bulk & Cut Tracker</title>
+<style>
+  :root{
+    --bg:#12151A;
+    --card:#1B2028;
+    --card-2:#20262F;
+    --line:#2B323C;
+    --text:#F1EFE9;
+    --text-dim:#9AA0A8;
+    --text-faint:#666D77;
+    --daniel:#E8A33D;
+    --daniel-dim:#3A2E19;
+    --ire:#33B7A6;
+    --ire-dim:#15302C;
+    --good:#6FBF73;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    padding-bottom:60px;
+  }
+  h1,h2,h3{font-family:'Oswald',system-ui,sans-serif;font-weight:600;letter-spacing:0.02em;margin:0;}
+  .wrap{max-width:640px;margin:0 auto;padding:20px 16px 40px;}
+  header{padding:24px 0 12px;text-align:center;}
+  header h1{font-size:24px;text-transform:uppercase;}
+  header p{color:var(--text-dim);font-size:13px;margin-top:4px;}
+
+  .tabs{display:flex;gap:10px;margin:20px 0;}
+  .tab{
+    flex:1;padding:14px 10px;border-radius:var(--radius);border:1.5px solid var(--line);
+    background:var(--card);text-align:center;cursor:pointer;transition:all .15s;
+  }
+  .tab .name{font-family:'Oswald',sans-serif;font-size:16px;text-transform:uppercase;}
+  .tab .role{font-size:11px;color:var(--text-dim);margin-top:2px;}
+  .tab.active.daniel{border-color:var(--daniel);background:var(--daniel-dim);}
+  .tab.active.daniel .name{color:var(--daniel);}
+  .tab.active.ire{border-color:var(--ire);background:var(--ire-dim);}
+  .tab.active.ire .name{color:var(--ire);}
+
+  .accent-bar{height:3px;border-radius:3px;margin-bottom:18px;}
+  .accent-bar.daniel{background:var(--daniel);}
+  .accent-bar.ire{background:var(--ire);}
+
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px;margin-bottom:16px;
+  }
+  .card h2{font-size:14px;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px;letter-spacing:0.06em;}
+  .day-label{font-size:19px;margin-bottom:2px;}
+  .day-sub{font-size:12px;color:var(--text-dim);margin-bottom:14px;}
+
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;}
+  .row:last-child{border-bottom:none;}
+  .row .meta{color:var(--text-faint);font-size:12px;}
+  .check{
+    width:22px;height:22px;border-radius:6px;border:1.5px solid var(--line);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+    background:var(--card-2);
+  }
+  .check.on{background:var(--good);border-color:var(--good);}
+  .check.on::after{content:'✓';color:#0f1a10;font-size:14px;font-weight:bold;}
+  .item-text{flex:1;}
+
+  label.field-label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;}
+  input[type=number], input[type=date], textarea{
+    width:100%;background:var(--card-2);border:1px solid var(--line);color:var(--text);
+    border-radius:10px;padding:10px 12px;font-size:15px;font-family:inherit;
+  }
+  textarea{resize:vertical;min-height:60px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+  .save-btn{
+    width:100%;padding:14px;border-radius:12px;border:none;
+    font-family:'Oswald',sans-serif;font-size:15px;text-transform:uppercase;letter-spacing:0.05em;
+    cursor:pointer;margin-top:6px;color:#12151A;
+  }
+  .save-btn.daniel{background:var(--daniel);}
+  .save-btn.ire{background:var(--ire);}
+  .save-btn:active{transform:scale(0.98);}
+  .status-msg{text-align:center;font-size:12px;color:var(--good);margin-top:8px;height:14px;}
+
+  .progress-wrap{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+  .progress-track{flex:1;height:8px;background:var(--card-2);border-radius:4px;overflow:hidden;}
+  .progress-fill{height:100%;border-radius:4px;}
+  .progress-fill.daniel{background:var(--daniel);}
+  .progress-fill.ire{background:var(--ire);}
+  .progress-pct{font-size:12px;color:var(--text-dim);min-width:34px;text-align:right;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;color:var(--text-faint);font-weight:400;font-size:11px;text-transform:uppercase;padding:6px 4px;border-bottom:1px solid var(--line);}
+  td{padding:8px 4px;border-bottom:1px solid var(--line);}
+  tr:last-child td{border-bottom:none;}
+  .empty-state{color:var(--text-faint);font-size:13px;text-align:center;padding:20px 0;}
+
+  canvas{width:100%;height:120px;display:block;}
+  .meal-note{font-size:11px;color:var(--text-faint);margin-top:10px;line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Daily check-in</h1>
+    <p>Track training, meals, and weight — one entry a day</p>
+  </header>
+
+  <div class="tabs">
+    <div class="tab daniel" id="tab-daniel" onclick="switchPerson('daniel')">
+      <div class="name">Daniel</div>
+      <div class="role">Bulking</div>
+    </div>
+    <div class="tab ire" id="tab-ire" onclick="switchPerson('ire')">
+      <div class="name">Ire</div>
+      <div class="role">Cutting</div>
+    </div>
+  </div>
+
+  <div class="accent-bar" id="accentBar"></div>
+
+  <div class="card">
+    <h2>Today</h2>
+    <label class="field-label">Date</label>
+    <input type="date" id="dateInput">
+  </div>
+
+  <div class="card" id="workoutCard">
+    <h2>Workout</h2>
+    <div class="day-label" id="dayLabel"></div>
+    <div class="day-sub" id="daySub"></div>
+    <div id="exerciseList"></div>
+  </div>
+
+  <div class="card" id="mealCard">
+    <h2>Meals</h2>
+    <div id="mealList"></div>
+    <div class="meal-note" id="mealNote"></div>
+  </div>
+
+  <div class="card">
+    <h2>Bodyweight and notes</h2>
+    <div class="grid2">
+      <div>
+        <label class="field-label">Weight (kg)</label>
+        <input type="number" step="0.1" id="weightInput" placeholder="e.g. 62.3">
+      </div>
+      <div>
+        <label class="field-label">Energy today</label>
+        <input type="number" min="1" max="5" id="energyInput" placeholder="1-5">
+      </div>
+    </div>
+    <label class="field-label" style="margin-top:12px;">Notes</label>
+    <textarea id="notesInput" placeholder="How training felt, cravings, soreness, anything worth logging"></textarea>
+  </div>
+
+  <button class="save-btn" id="saveBtn" onclick="saveCheckIn()">Save check-in</button>
+  <div class="status-msg" id="statusMsg"></div>
+
+  <div class="card" style="margin-top:24px;">
+    <h2>Weight trend</h2>
+    <canvas id="weightChart"></canvas>
+    <div class="empty-state" id="chartEmpty" style="display:none;">No weight entries yet. Log a check-in to start the trend.</div>
+  </div>
+
+  <div class="card">
+    <h2>History</h2>
+    <div id="historyTable"></div>
+  </div>
+</div>
+
+<script>
+let currentPerson = 'daniel';
+let allEntries = { daniel: {}, ire: {} };
+
+const danielWorkouts = {
+  1: { label: 'Lower body strength', sub: 'Mon', exercises: [
+    'Bodyweight squats — 4x12-15',
+    'Cement barbell squats (10kg) — 3x8-10',
+    'Walking lunges — 3x12 each leg',
+    'Calf raises (holding 3kg) — 3x15-20'
+  ]},
+  2: { label: 'Upper body push/pull', sub: 'Tue', exercises: [
+    'Push-ups — 4x12-20',
+    'Cement barbell rows (10kg) — 3x10-12',
+    'Pike push-ups — 3x10',
+    'Chair/bench dips — 3x10-15'
+  ]},
+  3: { label: 'Rest or skill work', sub: 'Wed', exercises: [
+    'Table tennis or light basketball shooting',
+    'Stretching / mobility'
+  ]},
+  4: { label: 'Lower body power', sub: 'Thu', exercises: [
+    'Jump squats (bodyweight) — 4x6-8',
+    'Broad jumps — 3x5',
+    'Single-leg glute bridges — 3x10 each leg',
+    'Ankle hops — 2x15-20'
+  ]},
+  5: { label: 'Upper body volume', sub: 'Fri', exercises: [
+    'Push-ups (higher reps) — 4x20+',
+    'Cement barbell curls (10kg) — 3x12',
+    'Cement barbell overhead press (10kg) — 3x8-10',
+    'Plank + side planks — 3x30-45s'
+  ]},
+  6: { label: 'Rest', sub: 'Sat', exercises: [] },
+  0: { label: 'Rest or light play', sub: 'Sun', exercises: [
+    'Optional: light basketball or table tennis'
+  ]}
+};
+
+const ireExercises = [
+  'Vertical stretches — 1 min',
+  'Sitting jumps — 3x15',
+  'Ceiling touches — 15',
+  'Pogo jumps — 3x20',
+  'One-leg pogo jumps — 3x20',
+  'Masai tribe jumps — 100',
+  'Jump squats — 20',
+  'Wall sit — 30s',
+  'Wall sit one leg — 30s',
+  'Calf raise both legs — 50, 50',
+  'Tibia raises — 25',
+  'Push-ups — 20, 3 sets',
+  'Barbell curls to failure (10kg) — 3 sets',
+  'Back curls to failure — 3 sets',
+  'Plank — 1 min'
+];
+
+const danielMeals = [
+  { name: 'Breakfast: garri + sugar (or egg/oats if available)', weight: null },
+  { name: 'Lunch: rice and stew, large portion, beans if available', weight: null },
+  { name: 'Snack: boiled potato (or occasional gala/popcorn)', weight: null },
+  { name: 'Dinner: rice and stew, or garri and beans (yam+egg if available)', weight: null },
+  { name: '5th meal if under target: bread + egg, or garri + groundnuts', weight: null }
+];
+
+const ireMeals = [
+  { name: 'Oats', weight: '50g dry' },
+  { name: 'Eggs', weight: '2 whole (~100g)' },
+  { name: 'Olive oil (breakfast)', weight: '5g' },
+  { name: 'Chicken breast', weight: '150g raw' },
+  { name: 'Rice noodles', weight: '60g dry' },
+  { name: 'Cabbage', weight: '100g' },
+  { name: 'Onions, peppers, tomato (lunch)', weight: '50g each' },
+  { name: 'Olive oil (lunch)', weight: '5g' },
+  { name: 'Beef or oxtail', weight: '120g raw' },
+  { name: 'Pounded yam flour', weight: '40g dry' },
+  { name: 'Ogbono', weight: '20g dry' },
+  { name: 'Onions, peppers, tomato (dinner base)', weight: '30g each' },
+  { name: 'Granola (optional snack)', weight: '20g' }
+];
+
+function todayStr(){
+  const d = new Date();
+  return d.toISOString().slice(0,10);
+}
+
+function switchPerson(person){
+  currentPerson = person;
+  document.getElementById('tab-daniel').classList.toggle('active', person==='daniel');
+  document.getElementById('tab-ire').classList.toggle('active', person==='ire');
+  document.getElementById('accentBar').className = 'accent-bar ' + person;
+  document.getElementById('saveBtn').className = 'save-btn ' + person;
+  render();
+}
+
+function getDateKey(){
+  return document.getElementById('dateInput').value || todayStr();
+}
+
+function buildExerciseHTML(list, savedChecks){
+  return list.map((ex, i) => {
+    const on = savedChecks && savedChecks[i];
+    return `<div class="row">
+      <div class="check ${on?'on':''}" data-idx="${i}" onclick="toggleExercise(${i})"></div>
+      <div class="item-text">${ex}</div>
+    </div>`;
+  }).join('');
+}
+
+function buildMealHTML(list, savedChecks){
+  return list.map((m, i) => {
+    const on = savedChecks && savedChecks[i];
+    return `<div class="row">
+      <div class="check ${on?'on':''}" data-mealidx="${i}" onclick="toggleMeal(${i})"></div>
+      <div class="item-text">${m.name}</div>
+      ${m.weight ? `<div class="meta">${m.weight}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+let exerciseChecks = [];
+let mealChecks = [];
+
+function toggleExercise(i){
+  exerciseChecks[i] = !exerciseChecks[i];
+  document.querySelector(`[data-idx="${i}"]`).classList.toggle('on');
+}
+function toggleMeal(i){
+  mealChecks[i] = !mealChecks[i];
+  document.querySelector(`[data-mealidx="${i}"]`).classList.toggle('on');
+}
+
+function render(){
+  const key = getDateKey();
+  const existing = allEntries[currentPerson][key] || null;
+
+  if(currentPerson === 'daniel'){
+    const dow = new Date(key + 'T12:00:00').getDay();
+    const plan = danielWorkouts[dow];
+    document.getElementById('dayLabel').textContent = plan.label;
+    document.getElementById('daySub').textContent = plan.sub;
+    exerciseChecks = existing ? (existing.exercises || plan.exercises.map(()=>false)) : plan.exercises.map(()=>false);
+    document.getElementById('exerciseList').innerHTML = plan.exercises.length
+      ? buildExerciseHTML(plan.exercises, exerciseChecks)
+      : '<div class="empty-state">Rest day — no lifting scheduled.</div>';
+
+    mealChecks = existing ? (existing.meals || danielMeals.map(()=>false)) : danielMeals.map(()=>false);
+    document.getElementById('mealList').innerHTML = buildMealHTML(danielMeals, mealChecks);
+    document.getElementById('mealNote').textContent = 'Target: ~2800-3000 kcal. Prioritise beans and egg whenever available over gala or carb drinks.';
+  } else {
+    document.getElementById('dayLabel').textContent = 'Vertical jump programme';
+    document.getElementById('daySub').textContent = 'Fixed daily routine';
+    exerciseChecks = existing ? (existing.exercises || ireExercises.map(()=>false)) : ireExercises.map(()=>false);
+    document.getElementById('exerciseList').innerHTML = buildExerciseHTML(ireExercises, exerciseChecks);
+
+    mealChecks = existing ? (existing.meals || ireMeals.map(()=>false)) : ireMeals.map(()=>false);
+    document.getElementById('mealList').innerHTML = buildMealHTML(ireMeals, mealChecks);
+    document.getElementById('mealNote').textContent = 'Target: ~1600 kcal, ~170-180g protein. Weights shown are raw/dry unless noted.';
+  }
+
+  document.getElementById('weightInput').value = existing ? (existing.weight ?? '') : '';
+  document.getElementById('energyInput').value = existing ? (existing.energy ?? '') : '';
+  document.getElementById('notesInput').value = existing ? (existing.notes ?? '') : '';
+
+  renderHistory();
+  renderChart();
+}
+
+async function loadEntries(person){
+  try{
+    const res = await fetch('/api/checkins?person=' + person);
+    if(!res.ok) return {};
+    return await res.json();
+  }catch(e){
+    return {};
+  }
+}
+
+async function saveCheckIn(){
+  const key = getDateKey();
+  const entry = {
+    date: key,
+    weight: document.getElementById('weightInput').value ? parseFloat(document.getElementById('weightInput').value) : null,
+    energy: document.getElementById('energyInput').value ? parseInt(document.getElementById('energyInput').value) : null,
+    notes: document.getElementById('notesInput').value,
+    exercises: exerciseChecks,
+    meals: mealChecks
+  };
+  try{
+    const res = await fetch('/api/checkins', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ person: currentPerson, date: key, entry })
+    });
+    if(!res.ok) throw new Error('save failed');
+    allEntries[currentPerson][key] = entry;
+    const msg = document.getElementById('statusMsg');
+    msg.textContent = 'Saved';
+    setTimeout(()=>{ msg.textContent=''; }, 2000);
+    renderHistory();
+    renderChart();
+  }catch(e){
+    document.getElementById('statusMsg').textContent = 'Could not save — try again';
+  }
+}
+
+function pct(arr){
+  if(!arr || arr.length===0) return 0;
+  const done = arr.filter(Boolean).length;
+  return Math.round((done/arr.length)*100);
+}
+
+function renderHistory(){
+  const entries = Object.values(allEntries[currentPerson]).sort((a,b)=> b.date.localeCompare(a.date));
+  const container = document.getElementById('historyTable');
+  if(entries.length===0){
+    container.innerHTML = '<div class="empty-state">No check-ins yet.</div>';
+    return;
+  }
+  let rows = entries.slice(0,14).map(e => {
+    const wPct = pct(e.exercises);
+    const mPct = pct(e.meals);
+    return `<tr>
+      <td>${e.date}</td>
+      <td>${e.weight ? e.weight + ' kg' : '—'}</td>
+      <td>
+        <div class="progress-wrap">
+          <div class="progress-track"><div class="progress-fill ${currentPerson}" style="width:${wPct}%"></div></div>
+          <div class="progress-pct">${wPct}%</div>
+        </div>
+      </td>
+      <td>
+        <div class="progress-wrap">
+          <div class="progress-track"><div class="progress-fill ${currentPerson}" style="width:${mPct}%"></div></div>
+          <div class="progress-pct">${mPct}%</div>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  container.innerHTML = `<table>
+    <tr><th>Date</th><th>Weight</th><th>Workout</th><th>Meals</th></tr>
+    ${rows}
+  </table>`;
+}
+
+function renderChart(){
+  const canvas = document.getElementById('weightChart');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth, h = 120;
+  canvas.width = w*dpr; canvas.height = h*dpr;
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,w,h);
+
+  const entries = Object.values(allEntries[currentPerson])
+    .filter(e => e.weight != null)
+    .sort((a,b)=> a.date.localeCompare(b.date));
+
+  document.getElementById('chartEmpty').style.display = entries.length < 2 ? 'block' : 'none';
+  if(entries.length < 2) return;
+
+  const weights = entries.map(e=>e.weight);
+  const min = Math.min(...weights) - 0.5;
+  const max = Math.max(...weights) + 0.5;
+  const pad = 10;
+
+  const color = currentPerson === 'daniel' ? '#E8A33D' : '#33B7A6';
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  entries.forEach((e,i)=>{
+    const x = pad + (i/(entries.length-1)) * (w - pad*2);
+    const y = h - pad - ((e.weight - min)/(max-min)) * (h - pad*2);
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+
+  ctx.fillStyle = color;
+  entries.forEach((e,i)=>{
+    const x = pad + (i/(entries.length-1)) * (w - pad*2);
+    const y = h - pad - ((e.weight - min)/(max-min)) * (h - pad*2);
+    ctx.beginPath();
+    ctx.arc(x,y,3,0,Math.PI*2);
+    ctx.fill();
+  });
+}
+
+document.getElementById('dateInput').addEventListener('change', render);
+
+async function init(){
+  document.getElementById('dateInput').value = todayStr();
+  allEntries.daniel = await loadEntries('daniel');
+  allEntries.ire = await loadEntries('ire');
+  switchPerson('daniel');
+}
+init();
+</script>
+</body>
+</html>
