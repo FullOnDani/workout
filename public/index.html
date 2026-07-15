@@ -104,6 +104,9 @@
 
   canvas{width:100%;height:120px;display:block;}
   .meal-note{font-size:11px;color:var(--text-faint);margin-top:10px;line-height:1.5;}
+  .meal-group-label{font-size:12px;font-weight:600;color:var(--ire);text-transform:uppercase;letter-spacing:0.05em;margin-top:14px;padding-top:10px;border-top:1px solid var(--line);}
+  .meal-group-label:first-child{margin-top:0;padding-top:0;border-top:none;}
+  .meal-group-total{font-size:11px;color:var(--text-faint);padding:2px 0 4px 32px;font-style:italic;}
 </style>
 </head>
 <body>
@@ -242,19 +245,19 @@ const danielMeals = [
 ];
 
 const ireMeals = [
-  { name: 'Oats', weight: '50g dry' },
-  { name: 'Eggs', weight: '2 whole (~100g)' },
-  { name: 'Olive oil (breakfast)', weight: '5g' },
-  { name: 'Chicken breast', weight: '150g raw' },
-  { name: 'Rice noodles', weight: '60g dry' },
-  { name: 'Cabbage', weight: '100g' },
-  { name: 'Onions, peppers, tomato (lunch)', weight: '50g each' },
-  { name: 'Olive oil (lunch)', weight: '5g' },
-  { name: 'Beef or oxtail', weight: '120g raw' },
-  { name: 'Pounded yam flour', weight: '40g dry' },
-  { name: 'Ogbono', weight: '20g dry' },
-  { name: 'Onions, peppers, tomato (dinner base)', weight: '30g each' },
-  { name: 'Granola (optional snack)', weight: '20g' }
+  { name: 'Oats', weight: '50g dry', group: 'Breakfast' },
+  { name: 'Eggs', weight: '2 whole (~100g)', group: 'Breakfast' },
+  { name: 'Olive oil (for cooking)', weight: '5g', group: 'Breakfast', groupTotal: '~330 kcal, ~18g protein' },
+  { name: 'Chicken breast', weight: '150g raw', group: 'Lunch' },
+  { name: 'Rice noodles', weight: '60g dry', group: 'Lunch' },
+  { name: 'Cabbage', weight: '100g', group: 'Lunch' },
+  { name: 'Onions, peppers, tomato', weight: '50g each', group: 'Lunch' },
+  { name: 'Olive oil (for cooking)', weight: '5g', group: 'Lunch', groupTotal: '~500 kcal, ~45g protein' },
+  { name: 'Beef or oxtail', weight: '120g raw', group: 'Dinner' },
+  { name: 'Pounded yam flour', weight: '40g dry', group: 'Dinner' },
+  { name: 'Ogbono', weight: '20g dry', group: 'Dinner' },
+  { name: 'Onions, peppers, tomato (base)', weight: '30g each', group: 'Dinner', groupTotal: '~480-530 kcal, ~30g protein' },
+  { name: 'Granola', weight: '20g', group: 'Snack (optional, if under target)', groupTotal: '~90 kcal' }
 ];
 
 function todayStr(){
@@ -286,13 +289,20 @@ function buildExerciseHTML(list, savedChecks){
 }
 
 function buildMealHTML(list, savedChecks){
+  let lastGroup = null;
   return list.map((m, i) => {
     const on = savedChecks && savedChecks[i];
-    return `<div class="row">
+    let header = '';
+    if(m.group && m.group !== lastGroup){
+      lastGroup = m.group;
+      header = `<div class="meal-group-label">${m.group}</div>`;
+    }
+    const totalLine = m.groupTotal ? `<div class="meal-group-total">${m.groupTotal}</div>` : '';
+    return `${header}<div class="row">
       <div class="check ${on?'on':''}" data-mealidx="${i}" onclick="toggleMeal(${i})"></div>
       <div class="item-text">${m.name}</div>
       ${m.weight ? `<div class="meta">${m.weight}</div>` : ''}
-    </div>`;
+    </div>${totalLine}`;
   }).join('');
 }
 
