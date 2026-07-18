@@ -335,7 +335,8 @@ const foodDB = {
   staples: [
     { id: 'garri', name: 'Garri (soaked)', medKcal: 360, medProtein: 1 },
     { id: 'ricestew', name: 'Rice and stew', medKcal: 525, medProtein: 13 },
-    { id: 'egg', name: 'Egg (boiled/fried)', medKcal: 78, medProtein: 6 },
+    { id: 'egg_boiled', name: 'Egg (boiled)', medKcal: 70, medProtein: 6, portionLabels: ['1','2','3'], portionMult: [1,2,3] },
+    { id: 'egg_fried', name: 'Egg (fried)', medKcal: 90, medProtein: 6.5, portionLabels: ['1','2','3'], portionMult: [1,2,3] },
     { id: 'bread', name: 'Bread', medKcal: 160, medProtein: 6 },
     { id: 'yam', name: 'Yam (boiled/pounded)', medKcal: 225, medProtein: 2 },
     { id: 'beans', name: 'Beans (cooked)', medKcal: 230, medProtein: 15 }
@@ -343,7 +344,8 @@ const foodDB = {
   occasionals: [
     { id: 'gala', name: 'Gala', medKcal: 300, medProtein: 6 },
     { id: 'popcorn', name: 'Popcorn', medKcal: 90, medProtein: 2 },
-    { id: 'potato', name: 'Potato (boiled)', medKcal: 135, medProtein: 3 },
+    { id: 'potato_boiled', name: 'Potato (boiled, 1 cup)', medKcal: 135, medProtein: 3 },
+    { id: 'potato_fried', name: 'Potato (fried, whole)', medKcal: 300, medProtein: 4, portionLabels: ['½','1','2'], portionMult: [0.5,1,2] },
     { id: 'spaghetti', name: 'Spaghetti (cooked)', medKcal: 220, medProtein: 8 },
     { id: 'coke', name: 'Coke', medKcal: 145, medProtein: 0 },
     { id: 'fanta', name: 'Fanta', medKcal: 150, medProtein: 0 },
@@ -376,6 +378,8 @@ const foodDB = {
 
 const PORTION_MULT = { S: 0.65, M: 1, L: 1.5 };
 const PORTION_LABEL = { S: 'S', M: 'M', L: 'L' };
+const DEFAULT_PORTION_LABELS = ['S','M','L'];
+const DEFAULT_PORTION_MULT = [0.65, 1, 1.5];
 
 const DANIEL_KCAL_TARGET = 2900;
 const DANIEL_PROTEIN_TARGET = 130;
@@ -514,16 +518,18 @@ function renderFoodList(){
   }
 
   const list = foodDB[activeFoodTab];
-  container.innerHTML = list.map(f => `
+  container.innerHTML = list.map(f => {
+    const labels = f.portionLabels || DEFAULT_PORTION_LABELS;
+    const btns = labels.map((lbl, i) =>
+      `<div class="portion-btn" onclick="addPortionFood('${activeFoodTab}','${f.id}',${i})">${lbl}</div>`
+    ).join('');
+    return `
     <div class="food-row">
       <div class="fname">${f.name}</div>
-      <div class="portion-btns">
-        <div class="portion-btn" onclick="addPortionFood('${activeFoodTab}','${f.id}','S')">S</div>
-        <div class="portion-btn" onclick="addPortionFood('${activeFoodTab}','${f.id}','M')">M</div>
-        <div class="portion-btn" onclick="addPortionFood('${activeFoodTab}','${f.id}','L')">L</div>
-      </div>
+      <div class="portion-btns">${btns}</div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function toggleCustomFields(){
@@ -533,14 +539,16 @@ function toggleCustomFields(){
   document.getElementById('customKcalWrap').style.display = isCustom ? 'grid' : 'none';
 }
 
-function addPortionFood(tab, id, size){
+function addPortionFood(tab, id, idx){
   const food = foodDB[tab].find(f => f.id === id);
   if(!food) return;
-  const mult = PORTION_MULT[size];
+  const labels = food.portionLabels || DEFAULT_PORTION_LABELS;
+  const mults = food.portionMult || DEFAULT_PORTION_MULT;
+  const mult = mults[idx];
   const kcal = Math.round(food.medKcal * mult);
   const protein = Math.round(food.medProtein * mult * 10) / 10;
   dailyFoodLog.push({
-    name: `${food.name} (${PORTION_LABEL[size]})`,
+    name: `${food.name} (${labels[idx]})`,
     kcal, protein
   });
   renderLog();
