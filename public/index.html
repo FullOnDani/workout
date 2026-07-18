@@ -9,6 +9,7 @@
     --bg:#12151A;
     --card:#1B2028;
     --card-2:#20262F;
+    --card-3:#262D37;
     --line:#2B323C;
     --text:#F1EFE9;
     --text-dim:#9AA0A8;
@@ -18,6 +19,7 @@
     --ire:#33B7A6;
     --ire-dim:#15302C;
     --good:#6FBF73;
+    --warn:#E8734A;
     --radius:14px;
   }
   *{box-sizing:border-box;}
@@ -71,13 +73,17 @@
   .check.on::after{content:'✓';color:#0f1a10;font-size:14px;font-weight:bold;}
   .item-text{flex:1;}
 
+  .sub-heading{font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;margin:14px 0 4px;padding-top:10px;border-top:1px solid var(--line);}
+  .sub-heading:first-child{margin-top:0;padding-top:0;border-top:none;}
+
   label.field-label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;}
-  input[type=number], input[type=date], textarea{
+  input[type=number], input[type=date], input[type=text], textarea, select{
     width:100%;background:var(--card-2);border:1px solid var(--line);color:var(--text);
     border-radius:10px;padding:10px 12px;font-size:15px;font-family:inherit;
   }
   textarea{resize:vertical;min-height:60px;}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
 
   .save-btn{
     width:100%;padding:14px;border-radius:12px;border:none;
@@ -107,6 +113,61 @@
   .meal-group-label{font-size:12px;font-weight:600;color:var(--ire);text-transform:uppercase;letter-spacing:0.05em;margin-top:14px;padding-top:10px;border-top:1px solid var(--line);}
   .meal-group-label:first-child{margin-top:0;padding-top:0;border-top:none;}
   .meal-group-total{font-size:11px;color:var(--text-faint);padding:2px 0 4px 32px;font-style:italic;}
+
+  /* ---- Meal tracker (Daniel) ---- */
+  .food-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+  .food-tab{
+    padding:7px 12px;border-radius:20px;border:1px solid var(--line);background:var(--card-2);
+    font-size:12px;color:var(--text-dim);cursor:pointer;white-space:nowrap;
+  }
+  .food-tab.active{border-color:var(--daniel);color:var(--daniel);background:var(--daniel-dim);}
+  .food-row{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:9px 0;border-bottom:1px solid var(--line);font-size:14px;
+  }
+  .food-row:last-child{border-bottom:none;}
+  .food-row .fname{flex:1;}
+  .portion-btns{display:flex;gap:6px;}
+  .portion-btn{
+    width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--card-2);
+    color:var(--text-dim);font-size:12px;cursor:pointer;font-family:'Oswald',sans-serif;
+  }
+  .portion-btn:active{background:var(--daniel-dim);border-color:var(--daniel);color:var(--daniel);}
+
+  .other-form{display:flex;flex-direction:column;gap:10px;padding-top:6px;}
+  .custom-note{font-size:11px;color:var(--text-faint);line-height:1.5;}
+  .add-btn{
+    padding:10px;border-radius:10px;border:1px solid var(--daniel);background:var(--daniel-dim);
+    color:var(--daniel);font-size:13px;font-weight:600;cursor:pointer;font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:0.04em;
+  }
+
+  .log-list{margin-top:14px;}
+  .log-item{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;
+  }
+  .log-item:last-child{border-bottom:none;}
+  .log-item .lname{flex:1;}
+  .log-item .lmeta{color:var(--text-faint);font-size:11px;}
+  .remove-btn{
+    width:22px;height:22px;border-radius:6px;border:1px solid var(--line);background:var(--card-2);
+    color:var(--text-faint);font-size:13px;cursor:pointer;line-height:1;flex-shrink:0;
+  }
+
+  .totals-box{
+    display:flex;gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);
+  }
+  .totals-col{flex:1;text-align:center;}
+  .totals-col .num{font-family:'Oswald',sans-serif;font-size:20px;color:var(--daniel);}
+  .totals-col .lbl{font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.05em;}
+
+  .suggestion-box{
+    margin-top:12px;padding:12px;border-radius:10px;background:var(--daniel-dim);
+    border:1px solid var(--daniel);font-size:13px;color:var(--text);line-height:1.5;
+  }
+  .suggestion-box.met{background:rgba(111,191,115,0.1);border-color:var(--good);}
+  .suggestion-label{font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--daniel);margin-bottom:4px;}
+  .suggestion-box.met .suggestion-label{color:var(--good);}
 </style>
 </head>
 <body>
@@ -182,39 +243,52 @@
 <script>
 let currentPerson = 'daniel';
 let allEntries = { daniel: {}, ire: {} };
+let dailyFoodLog = [];
+let activeFoodTab = 'staples';
+
+/* ---------------- Workout data ---------------- */
+
+const stretchRoutine = [
+  'Arm circles — 30s each direction',
+  'Leg swings (front-back, side-side) — 10 each leg',
+  'Torso twists — 20 reps',
+  'Bodyweight squats (easy warm-up) — 10 reps',
+  'Walking lunges with a twist — 5 each side',
+  'Ankle rolls — 10 each side'
+];
 
 const danielWorkouts = {
   1: { label: 'Lower body strength', sub: 'Mon', exercises: [
-    'Bodyweight squats — 4x12-15',
-    'Cement barbell squats (10kg) — 3x8-10',
+    ...stretchRoutine,
+    'Bodyweight squats — 3x12-15',
+    'Cement barbell squats (10kg) — 3x12-15',
     'Walking lunges — 3x12 each leg',
     'Calf raises (holding 3kg) — 3x15-20'
   ]},
-  2: { label: 'Upper body push/pull', sub: 'Tue', exercises: [
-    'Push-ups — 4x12-20',
-    'Cement barbell rows (10kg) — 3x10-12',
-    'Pike push-ups — 3x10',
-    'Chair/bench dips — 3x10-15'
+  2: { label: 'Upper body', sub: 'Tue', exercises: [
+    ...stretchRoutine,
+    'Push-ups — 3x15',
+    'Cement barbell rows (10kg) — 3x15',
+    'Pike push-ups — 3x15',
+    'Chair/bench dips — 3x15'
   ]},
   3: { label: 'Rest or skill work', sub: 'Wed', exercises: [
     'Table tennis or light basketball shooting',
     'Stretching / mobility'
   ]},
-  4: { label: 'Lower body power', sub: 'Thu', exercises: [
-    'Jump squats (bodyweight) — 4x6-8',
+  4: { label: 'Basketball (hard) — no lifting', sub: 'Thu', exercises: [
+    'Full game / scrimmage — this is the day\'s training'
+  ]},
+  5: { label: 'Light recovery', sub: 'Fri', exercises: [
+    ...stretchRoutine
+  ]},
+  6: { label: 'Total rest', sub: 'Sat', exercises: [] },
+  0: { label: 'Lower body power', sub: 'Sun', exercises: [
+    ...stretchRoutine,
+    'Jump squats — 3x15',
     'Broad jumps — 3x5',
     'Single-leg glute bridges — 3x10 each leg',
     'Ankle hops — 2x15-20'
-  ]},
-  5: { label: 'Upper body volume', sub: 'Fri', exercises: [
-    'Push-ups (higher reps) — 4x20+',
-    'Cement barbell curls (10kg) — 3x12',
-    'Cement barbell overhead press (10kg) — 3x8-10',
-    'Plank + side planks — 3x30-45s'
-  ]},
-  6: { label: 'Rest', sub: 'Sat', exercises: [] },
-  0: { label: 'Rest or light play', sub: 'Sun', exercises: [
-    'Optional: light basketball or table tennis'
   ]}
 };
 
@@ -236,13 +310,7 @@ const ireExercises = [
   'Plank — 1 min'
 ];
 
-const danielMeals = [
-  { name: 'Breakfast: garri + sugar (or egg/oats if available)', weight: null },
-  { name: 'Lunch: rice and stew, large portion, beans if available', weight: null },
-  { name: 'Snack: boiled potato (or occasional gala/popcorn)', weight: null },
-  { name: 'Dinner: rice and stew, or garri and beans (yam+egg if available)', weight: null },
-  { name: '5th meal if under target: bread + egg, or garri + groundnuts', weight: null }
-];
+/* ---------------- Ire meal data (reference, grouped) ---------------- */
 
 const ireMeals = [
   { name: 'Oats', weight: '50g dry', group: 'Breakfast' },
@@ -259,6 +327,60 @@ const ireMeals = [
   { name: 'Onions, peppers, tomato (base)', weight: '30g each', group: 'Dinner', groupTotal: '~480-530 kcal, ~30g protein' },
   { name: 'Granola', weight: '20g', group: 'Snack (optional, if under target)', groupTotal: '~90 kcal' }
 ];
+
+/* ---------------- Daniel food database ---------------- */
+/* Values are estimates for typical Nigerian portions/preparations. */
+
+const foodDB = {
+  staples: [
+    { id: 'garri', name: 'Garri (soaked)', medKcal: 360, medProtein: 1 },
+    { id: 'ricestew', name: 'Rice and stew', medKcal: 525, medProtein: 13 },
+    { id: 'egg', name: 'Egg (boiled/fried)', medKcal: 78, medProtein: 6 },
+    { id: 'bread', name: 'Bread', medKcal: 160, medProtein: 6 },
+    { id: 'yam', name: 'Yam (boiled/pounded)', medKcal: 225, medProtein: 2 },
+    { id: 'beans', name: 'Beans (cooked)', medKcal: 230, medProtein: 15 }
+  ],
+  occasionals: [
+    { id: 'gala', name: 'Gala', medKcal: 300, medProtein: 6 },
+    { id: 'popcorn', name: 'Popcorn', medKcal: 90, medProtein: 2 },
+    { id: 'potato', name: 'Potato (boiled)', medKcal: 135, medProtein: 3 },
+    { id: 'spaghetti', name: 'Spaghetti (cooked)', medKcal: 220, medProtein: 8 },
+    { id: 'coke', name: 'Coke', medKcal: 145, medProtein: 0 },
+    { id: 'fanta', name: 'Fanta', medKcal: 150, medProtein: 0 },
+    { id: 'sprite', name: 'Sprite', medKcal: 140, medProtein: 0 },
+    { id: 'pepsi', name: 'Pepsi', medKcal: 150, medProtein: 0 },
+    { id: 'mirinda', name: 'Mirinda', medKcal: 155, medProtein: 0 }
+  ],
+  protein: [
+    { id: 'chicken_grilled', name: 'Chicken (grilled/fried)', medKcal: 230, medProtein: 28 },
+    { id: 'chicken_boiled', name: 'Chicken (boiled)', medKcal: 180, medProtein: 29 },
+    { id: 'beef', name: 'Beef', medKcal: 250, medProtein: 26 },
+    { id: 'fish', name: 'Fish (e.g. titus/mackerel, fried)', medKcal: 220, medProtein: 24 },
+    { id: 'turkey', name: 'Turkey', medKcal: 200, medProtein: 29 }
+  ],
+  other: [
+    { id: 'semo', name: 'Semo (cooked)', kcal100: 110, protein100: 1 },
+    { id: 'vegsoup', name: 'Vegetable soup (efo riro)', kcal100: 150, protein100: 6 },
+    { id: 'moinmoin', name: 'Moin moin', kcal100: 180, protein100: 10 },
+    { id: 'akara', name: 'Akara', kcal100: 300, protein100: 12 },
+    { id: 'plantain_fried', name: 'Plantain (fried)', kcal100: 250, protein100: 2 },
+    { id: 'plantain_boiled', name: 'Plantain (boiled)', kcal100: 120, protein100: 1 },
+    { id: 'amala', name: 'Amala', kcal100: 110, protein100: 1 },
+    { id: 'fufu', name: 'Fufu', kcal100: 110, protein100: 1 },
+    { id: 'egusi', name: 'Egusi soup', kcal100: 200, protein100: 9 },
+    { id: 'ewedu', name: 'Ewedu', kcal100: 60, protein100: 4 },
+    { id: 'suya', name: 'Suya', kcal100: 250, protein100: 28 },
+    { id: 'milo', name: 'Milo/custard (with water)', kcal100: 90, protein100: 2 }
+  ]
+};
+
+const PORTION_MULT = { S: 0.65, M: 1, L: 1.5 };
+const PORTION_LABEL = { S: 'S', M: 'M', L: 'L' };
+
+const DANIEL_KCAL_TARGET = 2900;
+const DANIEL_PROTEIN_TARGET = 130;
+
+/* ---------------- Helpers ---------------- */
 
 function todayStr(){
   const d = new Date();
@@ -288,7 +410,7 @@ function buildExerciseHTML(list, savedChecks){
   }).join('');
 }
 
-function buildMealHTML(list, savedChecks){
+function buildIreMealHTML(list, savedChecks){
   let lastGroup = null;
   return list.map((m, i) => {
     const on = savedChecks && savedChecks[i];
@@ -318,6 +440,216 @@ function toggleMeal(i){
   document.querySelector(`[data-mealidx="${i}"]`).classList.toggle('on');
 }
 
+/* ---------------- Daniel meal tracker ---------------- */
+
+function renderDanielMealCard(){
+  const html = `
+    <div class="food-tabs" id="foodTabs"></div>
+    <div id="foodList"></div>
+    <div class="log-list" id="logList"></div>
+    <div class="totals-box" id="totalsBox"></div>
+    <div id="suggestionBox"></div>
+  `;
+  document.getElementById('mealList').innerHTML = html;
+  document.getElementById('mealNote').textContent = 'Target: ~2800-3000 kcal, ~130g protein. Log what you actually eat — the app tracks the running total and suggests what to add.';
+  renderFoodTabs();
+  renderFoodList();
+  renderLog();
+}
+
+function renderFoodTabs(){
+  const tabs = [
+    {id:'staples', label:'Staples'},
+    {id:'occasionals', label:'Occasionals'},
+    {id:'protein', label:'Protein sides'},
+    {id:'other', label:'Other'}
+  ];
+  document.getElementById('foodTabs').innerHTML = tabs.map(t =>
+    `<div class="food-tab ${activeFoodTab===t.id?'active':''}" onclick="setFoodTab('${t.id}')">${t.label}</div>`
+  ).join('');
+}
+
+function setFoodTab(tab){
+  activeFoodTab = tab;
+  renderFoodTabs();
+  renderFoodList();
+}
+
+function renderFoodList(){
+  const container = document.getElementById('foodList');
+  if(activeFoodTab === 'other'){
+    const options = foodDB.other.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+    container.innerHTML = `
+      <div class="other-form">
+        <div>
+          <label class="field-label">Food</label>
+          <select id="otherSelect" onchange="toggleCustomFields()">
+            ${options}
+            <option value="__custom__">Other (not listed) — enter my own</option>
+          </select>
+        </div>
+        <div id="customNameWrap" style="display:none;">
+          <label class="field-label">Food name</label>
+          <input type="text" id="customName" placeholder="e.g. Semo and vegetable">
+        </div>
+        <div class="grid2" id="customKcalWrap" style="display:none;">
+          <div>
+            <label class="field-label">Kcal per 100g</label>
+            <input type="number" id="customKcal" placeholder="e.g. 150">
+          </div>
+          <div>
+            <label class="field-label">Protein per 100g</label>
+            <input type="number" id="customProtein" placeholder="e.g. 6">
+          </div>
+        </div>
+        <div class="custom-note" id="customNote">Rough reference: soups/stews ~150-250 kcal &amp; 6-12g protein per 100g. Swallow/starch (semo, fufu, amala) ~100-120 kcal &amp; 1-2g protein per 100g. Fried snacks ~250-300 kcal per 100g.</div>
+        <div>
+          <label class="field-label">Grams eaten</label>
+          <input type="number" id="otherGrams" placeholder="e.g. 250">
+        </div>
+        <div class="add-btn" onclick="addOtherFood()">Add to today's log</div>
+      </div>
+    `;
+    return;
+  }
+
+  const list = foodDB[activeFoodTab];
+  container.innerHTML = list.map(f => `
+    <div class="food-row">
+      <div class="fname">${f.name}</div>
+      <div class="portion-btns">
+        <div class="portion-btn" onclick="addPortionFood('${activeFoodTab}','${f.id}','S')">S</div>
+        <div class="portion-btn" onclick="addPortionFood('${activeFoodTab}','${f.id}','M')">M</div>
+        <div class="portion-btn" onclick="addPortionFood('${activeFoodTab}','${f.id}','L')">L</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleCustomFields(){
+  const val = document.getElementById('otherSelect').value;
+  const isCustom = val === '__custom__';
+  document.getElementById('customNameWrap').style.display = isCustom ? 'block' : 'none';
+  document.getElementById('customKcalWrap').style.display = isCustom ? 'grid' : 'none';
+}
+
+function addPortionFood(tab, id, size){
+  const food = foodDB[tab].find(f => f.id === id);
+  if(!food) return;
+  const mult = PORTION_MULT[size];
+  const kcal = Math.round(food.medKcal * mult);
+  const protein = Math.round(food.medProtein * mult * 10) / 10;
+  dailyFoodLog.push({
+    name: `${food.name} (${PORTION_LABEL[size]})`,
+    kcal, protein
+  });
+  renderLog();
+}
+
+function addOtherFood(){
+  const val = document.getElementById('otherSelect').value;
+  const grams = parseFloat(document.getElementById('otherGrams').value);
+  if(!grams || grams <= 0){ return; }
+
+  let name, kcal100, protein100;
+  if(val === '__custom__'){
+    name = document.getElementById('customName').value.trim();
+    kcal100 = parseFloat(document.getElementById('customKcal').value);
+    protein100 = parseFloat(document.getElementById('customProtein').value);
+    if(!name || isNaN(kcal100) || isNaN(protein100)) return;
+  } else {
+    const food = foodDB.other.find(f => f.id === val);
+    if(!food) return;
+    name = food.name;
+    kcal100 = food.kcal100;
+    protein100 = food.protein100;
+  }
+
+  const kcal = Math.round((kcal100/100) * grams);
+  const protein = Math.round((protein100/100) * grams * 10) / 10;
+  dailyFoodLog.push({ name: `${name} (${grams}g)`, kcal, protein });
+
+  document.getElementById('otherGrams').value = '';
+  renderLog();
+}
+
+function removeFoodLog(i){
+  dailyFoodLog.splice(i,1);
+  renderLog();
+}
+
+function renderLog(){
+  const listEl = document.getElementById('logList');
+  if(!listEl) return;
+  if(dailyFoodLog.length === 0){
+    listEl.innerHTML = '<div class="empty-state">Nothing logged yet today.</div>';
+  } else {
+    listEl.innerHTML = dailyFoodLog.map((item, i) => `
+      <div class="log-item">
+        <div class="lname">${item.name}</div>
+        <div class="lmeta">${item.kcal} kcal · ${item.protein}g protein</div>
+        <div class="remove-btn" onclick="removeFoodLog(${i})">×</div>
+      </div>
+    `).join('');
+  }
+
+  const totalKcal = dailyFoodLog.reduce((s,i)=>s+i.kcal,0);
+  const totalProtein = Math.round(dailyFoodLog.reduce((s,i)=>s+i.protein,0) * 10) / 10;
+
+  document.getElementById('totalsBox').innerHTML = `
+    <div class="totals-col"><div class="num">${totalKcal}</div><div class="lbl">Kcal so far</div></div>
+    <div class="totals-col"><div class="num">${totalProtein}g</div><div class="lbl">Protein so far</div></div>
+    <div class="totals-col"><div class="num">${Math.max(DANIEL_KCAL_TARGET-totalKcal,0)}</div><div class="lbl">Kcal remaining</div></div>
+  `;
+
+  renderSuggestion(totalKcal, totalProtein);
+}
+
+function renderSuggestion(consumedKcal, consumedProtein){
+  const remKcal = DANIEL_KCAL_TARGET - consumedKcal;
+  const remProtein = DANIEL_PROTEIN_TARGET - consumedProtein;
+  const box = document.getElementById('suggestionBox');
+  if(!box) return;
+
+  if(remKcal <= 50 && remProtein <= 5){
+    box.innerHTML = `<div class="suggestion-box met"><div class="suggestion-label">Today's targets</div>Kcal and protein targets are met — nice work.</div>`;
+    return;
+  }
+
+  const pool = [
+    { name: 'Rice and stew (medium)', kcal: 525, protein: 13 },
+    { name: 'Beans (medium)', kcal: 230, protein: 15 },
+    { name: 'Boiled egg x2', kcal: 156, protein: 12 },
+    { name: 'Grilled/boiled chicken (medium)', kcal: 205, protein: 28 },
+    { name: 'Garri (medium)', kcal: 360, protein: 1 },
+    { name: 'Bread (medium)', kcal: 160, protein: 6 },
+    { name: 'Suya (100g)', kcal: 250, protein: 28 }
+  ];
+
+  const proteinUrgent = remProtein > 0 && (remProtein / Math.max(remKcal,1)) > 0.035;
+  let sorted = proteinUrgent
+    ? [...pool].sort((a,b)=> (b.protein/b.kcal) - (a.protein/a.kcal))
+    : [...pool].sort((a,b)=> Math.abs(a.kcal-remKcal) - Math.abs(b.kcal-remKcal));
+
+  const first = sorted[0];
+  let text;
+  if(remKcal - first.kcal > 250 || remProtein - first.protein > 8){
+    const rem2Kcal = remKcal - first.kcal;
+    const rem2Protein = remProtein - first.protein;
+    const secondPool = pool.filter(p => p.name !== first.name);
+    const second = rem2Protein > 8
+      ? secondPool.sort((a,b)=>(b.protein/b.kcal)-(a.protein/a.kcal))[0]
+      : secondPool.sort((a,b)=>Math.abs(a.kcal-rem2Kcal)-Math.abs(b.kcal-rem2Kcal))[0];
+    text = `Try: <strong>${first.name}</strong> + <strong>${second.name}</strong> — closes roughly ${first.kcal+second.kcal} kcal / ${Math.round((first.protein+second.protein)*10)/10}g protein of what's left.`;
+  } else {
+    text = `Try: <strong>${first.name}</strong> — closes roughly ${first.kcal} kcal / ${first.protein}g protein of what's left.`;
+  }
+
+  box.innerHTML = `<div class="suggestion-box"><div class="suggestion-label">Still needed today</div>${remKcal>0?remKcal+' kcal':'0 kcal'} · ${remProtein>0?remProtein+'g protein':'0g protein'} remaining<br><br>${text}</div>`;
+}
+
+/* ---------------- Main render ---------------- */
+
 function render(){
   const key = getDateKey();
   const existing = allEntries[currentPerson][key] || null;
@@ -330,11 +662,11 @@ function render(){
     exerciseChecks = existing ? (existing.exercises || plan.exercises.map(()=>false)) : plan.exercises.map(()=>false);
     document.getElementById('exerciseList').innerHTML = plan.exercises.length
       ? buildExerciseHTML(plan.exercises, exerciseChecks)
-      : '<div class="empty-state">Rest day — no lifting scheduled.</div>';
+      : '<div class="empty-state">Total rest — no training scheduled.</div>';
 
-    mealChecks = existing ? (existing.meals || danielMeals.map(()=>false)) : danielMeals.map(()=>false);
-    document.getElementById('mealList').innerHTML = buildMealHTML(danielMeals, mealChecks);
-    document.getElementById('mealNote').textContent = 'Target: ~2800-3000 kcal. Prioritise beans and egg whenever available over gala or carb drinks.';
+    dailyFoodLog = existing && existing.foodLog ? JSON.parse(JSON.stringify(existing.foodLog)) : [];
+    activeFoodTab = 'staples';
+    renderDanielMealCard();
   } else {
     document.getElementById('dayLabel').textContent = 'Vertical jump programme';
     document.getElementById('daySub').textContent = 'Fixed daily routine';
@@ -342,7 +674,7 @@ function render(){
     document.getElementById('exerciseList').innerHTML = buildExerciseHTML(ireExercises, exerciseChecks);
 
     mealChecks = existing ? (existing.meals || ireMeals.map(()=>false)) : ireMeals.map(()=>false);
-    document.getElementById('mealList').innerHTML = buildMealHTML(ireMeals, mealChecks);
+    document.getElementById('mealList').innerHTML = buildIreMealHTML(ireMeals, mealChecks);
     document.getElementById('mealNote').textContent = 'Target: ~1600 kcal, ~170-180g protein. Weights shown are raw/dry unless noted.';
   }
 
@@ -371,9 +703,13 @@ async function saveCheckIn(){
     weight: document.getElementById('weightInput').value ? parseFloat(document.getElementById('weightInput').value) : null,
     energy: document.getElementById('energyInput').value ? parseInt(document.getElementById('energyInput').value) : null,
     notes: document.getElementById('notesInput').value,
-    exercises: exerciseChecks,
-    meals: mealChecks
+    exercises: exerciseChecks
   };
+  if(currentPerson === 'daniel'){
+    entry.foodLog = dailyFoodLog;
+  } else {
+    entry.meals = mealChecks;
+  }
   try{
     const res = await fetch('/api/checkins', {
       method: 'POST',
@@ -407,7 +743,13 @@ function renderHistory(){
   }
   let rows = entries.slice(0,14).map(e => {
     const wPct = pct(e.exercises);
-    const mPct = pct(e.meals);
+    let secondCol;
+    if(currentPerson === 'daniel'){
+      const kcal = e.foodLog ? e.foodLog.reduce((s,i)=>s+i.kcal,0) : 0;
+      secondCol = `${kcal} kcal`;
+    } else {
+      secondCol = pct(e.meals) + '%';
+    }
     return `<tr>
       <td>${e.date}</td>
       <td>${e.weight ? e.weight + ' kg' : '—'}</td>
@@ -417,16 +759,12 @@ function renderHistory(){
           <div class="progress-pct">${wPct}%</div>
         </div>
       </td>
-      <td>
-        <div class="progress-wrap">
-          <div class="progress-track"><div class="progress-fill ${currentPerson}" style="width:${mPct}%"></div></div>
-          <div class="progress-pct">${mPct}%</div>
-        </div>
-      </td>
+      <td>${secondCol}</td>
     </tr>`;
   }).join('');
+  const secondHeader = currentPerson === 'daniel' ? 'Kcal logged' : 'Meals';
   container.innerHTML = `<table>
-    <tr><th>Date</th><th>Weight</th><th>Workout</th><th>Meals</th></tr>
+    <tr><th>Date</th><th>Weight</th><th>Workout</th><th>${secondHeader}</th></tr>
     ${rows}
   </table>`;
 }
